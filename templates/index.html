@@ -108,7 +108,7 @@ Users (last day)
 {% endfor %}
 MMs:
 
-{% for rebalancer in report.top_rebalancers %}- Top rebalancer #{{ loop.index }} — {{ rebalancer.volume }} volume closed ({{ rebalancer.name }})
+{% for rebalancer in report.top_market_makers %}- Top market maker #{{ loop.index }} — {{ rebalancer.volume }} volume closed ({{ rebalancer.name }})
 {% endfor %}
 Market Maker Bot (last day)
 
