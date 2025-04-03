@@ -86,24 +86,59 @@ def generate_report(df):
     user_tx_count = len(user_data)
     avg_tx_size = user_data['from_asset_amount_usd'].mean() if user_tx_count > 0 else 0
     
-    # Get top users
-    tokka_volume = user_data[user_data['Rebalancers Metadata - origin_initiator → Name'] == 'tokka']['from_asset_amount_usd'].sum()
+    # Get top users - dynamically calculate for all users
+    user_volumes = user_data.groupby('Rebalancers Metadata - origin_initiator → Name')['from_asset_amount_usd'].sum()
     
-    tokka_rebalancer_volume = user_data[(user_data['Rebalancers Metadata - origin_initiator → Name'] == 'tokka') & 
-                                      ~((user_data['from_chain_name'] == 'blast') & 
-                                        (user_data['to_chain_name'] == 'ethereum'))]['from_asset_amount_usd'].sum()
-    
-    ali_volume = user_data[user_data['Rebalancers Metadata - origin_initiator → Name'] == 'ali']['from_asset_amount_usd'].sum()
-    across_volume = user_data[user_data['Rebalancers Metadata - origin_initiator → Name'] == 'unknown across']['from_asset_amount_usd'].sum()
+    # Get top users (excluding any missing/NaN values)
+    user_volumes = user_volumes[user_volumes.index.notnull()]
     
     # Get top rebalancers
     mm_bot_volume = mm_data['from_asset_amount_usd'].sum()
     mm_bot_count = len(mm_data)
     
+    # Create a dictionary to hold rebalancer volumes
+    rebalancer_volumes = {}
+    
+    # Add Market Maker Bot
+    if mm_bot_volume > 0:
+        rebalancer_volumes['Market Maker Bot'] = mm_bot_volume
+    
+    # Calculate rebalancer volumes for all users (excluding Blast to ETH for Tokka)
+    for name, group in user_data.groupby('Rebalancers Metadata - origin_initiator → Name'):
+        if pd.isna(name):
+            continue
+        
+        # For tokka, exclude Blast to ETH transactions
+        if name == 'tokka':
+            volume = group[~((group['from_chain_name'] == 'blast') & 
+                           (group['to_chain_name'] == 'ethereum'))]['from_asset_amount_usd'].sum()
+        else:
+            volume = group['from_asset_amount_usd'].sum()
+        
+        rebalancer_volumes[name] = volume
+    
     # Format numbers
     formatted_volume = f"${yesterday_volume/1000000:.2f}M"
     formatted_dod = f"{dod_change:.0f}%"
     formatted_wow = f"{wow_change:.0f}%"
+    
+    # Prepare top users for the report
+    top_users_list = []
+    for name, volume in user_volumes.nlargest(3).items():
+        # If name is missing, use 'Unknown'
+        user_name = name if pd.notna(name) else 'Unknown'
+        top_users_list.append({
+            'name': user_name,
+            'volume': f"${volume/1000000:.2f}M"
+        })
+    
+    # Prepare top rebalancers for the report - get top 2
+    top_rebalancers_list = []
+    for name, volume in sorted(rebalancer_volumes.items(), key=lambda x: x[1], reverse=True)[:2]:
+        top_rebalancers_list.append({
+            'name': name,
+            'volume': f"${volume/1000000:.2f}M"
+        })
     
     # Prepare the report
     report = {
@@ -115,15 +150,8 @@ def generate_report(df):
         'top_pathways': top_pathways,
         'user_tx_count': user_tx_count,
         'avg_tx_size': f"${avg_tx_size/1000:.1f}k",
-        'top_users': [
-            {'name': 'Tokka', 'volume': f"${tokka_volume/1000000:.2f}M"},
-            {'name': 'Ali', 'volume': f"${ali_volume/1000000:.2f}M"},
-            {'name': 'Across', 'volume': f"${across_volume/1000000:.2f}M"}
-        ],
-        'top_rebalancers': [
-            {'name': 'Market Maker Bot', 'volume': f"${mm_bot_volume/1000000:.2f}M"},
-            {'name': 'Tokka', 'volume': f"${tokka_rebalancer_volume/1000000:.2f}M"}
-        ],
+        'top_users': top_users_list,
+        'top_rebalancers': top_rebalancers_list,
         'mm_bot_count': mm_bot_count,
         'mm_bot_volume': f"${mm_bot_volume/1000000:.2f}M"
     }
