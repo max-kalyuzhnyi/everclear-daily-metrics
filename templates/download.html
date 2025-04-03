@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Report - Daily Metrics Report Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            background-color: #f8f9fa;
+        }
+        .report-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .report-text {
+            white-space: pre-line;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="report-container">
+                    <h2 class="mb-3">Your Report</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted">You can copy this text or save it as a file</p>
+                        <div>
+                            <button id="copyBtn" class="btn btn-primary btn-sm">Copy to Clipboard</button>
+                            <button id="downloadBtn" class="btn btn-outline-primary btn-sm">Save as File</button>
+                        </div>
+                    </div>
+                    
+                    <div class="report-text" id="reportText">{{ report_text }}</div>
+                    
+                    <div class="mt-4">
+                        <a href="/" class="btn btn-secondary">Back to Generator</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Copy to clipboard functionality
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.addEventListener('click', function() {
+                const reportText = document.getElementById('reportText').innerText;
+                navigator.clipboard.writeText(reportText).then(function() {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(function() {
+                        copyBtn.textContent = 'Copy to Clipboard';
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                });
+            });
+            
+            // Download as file functionality
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.addEventListener('click', function() {
+                const reportText = document.getElementById('reportText').innerText;
+                const today = new Date();
+                const fileName = `rewards-report-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.txt`;
+                
+                const element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(reportText));
+                element.setAttribute('download', fileName);
+                
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                
+                element.click();
+                
+                document.body.removeChild(element);
+            });
+        });
+    </script>
+</body>
+</html> 

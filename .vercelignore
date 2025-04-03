@@ -1,0 +1,19 @@
+# Directories
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+.pytest_cache/
+.coverage
+
+# Files
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.csv 

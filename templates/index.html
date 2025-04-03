@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Rewards Report Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            background-color: #f8f9fa;
+        }
+        .report-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .report-text {
+            white-space: pre-line;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .upload-container {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+        .icon-large {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Daily Rewards Report Generator</h1>
+        
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% if not report %}
+                    <div class="upload-container">
+                        <div class="icon-large">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+                                <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+                            </svg>
+                        </div>
+                        <h4>Upload your CSV file</h4>
+                        <p class="text-muted">The report will be generated automatically</p>
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <input class="form-control" type="file" name="file" id="formFile" accept=".csv">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Generate Report</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <div class="report-container">
+                        <h2 class="mb-3">Report Generated Successfully</h2>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4>Metrics for {{ report.month }} {{ report.date }}</h4>
+                            <div>
+                                <a href="/download-report" class="btn btn-outline-primary btn-sm">Download as Text</a>
+                                <button id="copyBtn" class="btn btn-primary btn-sm">Copy to Clipboard</button>
+                            </div>
+                        </div>
+                        
+                        <div class="position-relative">
+                            <div class="report-text" id="reportText">
+**Metrics {{ report.month }} {{ report.date }}**
+
+Volume (last day)
+
+- Total — {{ report.total_volume }} ({{ report.dod_change }} d-o-d; {{ report.wow_change }} w-o-w)
+- Top pathways (users only, not MM)
+{% for pathway in report.top_pathways %}    - {{ pathway.path }} - ${{ "%.2f"|format(pathway.volume/1000000) }}M
+{% endfor %}
+Transactions (last day)
+
+- Total # — {{ report.user_tx_count }}
+- Average size — {{ report.avg_tx_size }}
+
+Users (last day)
+
+{% for user in report.top_users %}- Top user #{{ loop.index }} — {{ user.name }} {{ user.volume }}
+{% endfor %}
+MMs:
+
+{% for rebalancer in report.top_rebalancers %}- Top rebalancer #{{ loop.index }} — {{ rebalancer.volume }} volume closed ({{ rebalancer.name }})
+{% endfor %}
+Market Maker Bot (last day)
+
+- Total # invoices filled — {{ report.mm_bot_count }}
+- $M volume filled — {{ report.mm_bot_volume }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="/" class="btn btn-secondary">Generate Another Report</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const copyBtn = document.getElementById('copyBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const reportText = document.getElementById('reportText').innerText;
+                    navigator.clipboard.writeText(reportText).then(function() {
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(function() {
+                            copyBtn.textContent = 'Copy to Clipboard';
+                        }, 2000);
+                    }).catch(function(err) {
+                        console.error('Could not copy text: ', err);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html> 
