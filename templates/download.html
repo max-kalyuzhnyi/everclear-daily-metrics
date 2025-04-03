@@ -32,22 +32,32 @@
     <div class="container">
         <div class="row">
             <div class="col-md-8 offset-md-2">
-                <div class="report-container">
-                    <h2 class="mb-3">Your Report</h2>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted">You can copy this text or save it as a file</p>
-                        <div>
-                            <button id="copyBtn" class="btn btn-primary btn-sm">Copy to Clipboard</button>
-                            <button id="downloadBtn" class="btn btn-outline-primary btn-sm">Save as File</button>
+                {% if error %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ error }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="/" class="btn btn-primary">Back to Generator</a>
+                    </div>
+                {% else %}
+                    <div class="report-container">
+                        <h2 class="mb-3">Your Report</h2>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <p class="text-muted">You can copy this text or save it as a file</p>
+                            <div>
+                                <button id="copyBtn" class="btn btn-primary btn-sm">Copy to Clipboard</button>
+                                <button id="downloadBtn" class="btn btn-outline-primary btn-sm">Save as File</button>
+                            </div>
+                        </div>
+                        
+                        <div class="report-text" id="reportText">{{ report_text }}</div>
+                        
+                        <div class="mt-4">
+                            <a href="/" class="btn btn-secondary">Back to Generator</a>
                         </div>
                     </div>
-                    
-                    <div class="report-text" id="reportText">{{ report_text }}</div>
-                    
-                    <div class="mt-4">
-                        <a href="/" class="btn btn-secondary">Back to Generator</a>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -57,36 +67,40 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Copy to clipboard functionality
             const copyBtn = document.getElementById('copyBtn');
-            copyBtn.addEventListener('click', function() {
-                const reportText = document.getElementById('reportText').innerText;
-                navigator.clipboard.writeText(reportText).then(function() {
-                    copyBtn.textContent = 'Copied!';
-                    setTimeout(function() {
-                        copyBtn.textContent = 'Copy to Clipboard';
-                    }, 2000);
-                }).catch(function(err) {
-                    console.error('Could not copy text: ', err);
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const reportText = document.getElementById('reportText').innerText;
+                    navigator.clipboard.writeText(reportText).then(function() {
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(function() {
+                            copyBtn.textContent = 'Copy to Clipboard';
+                        }, 2000);
+                    }).catch(function(err) {
+                        console.error('Could not copy text: ', err);
+                    });
                 });
-            });
+            }
             
             // Download as file functionality
             const downloadBtn = document.getElementById('downloadBtn');
-            downloadBtn.addEventListener('click', function() {
-                const reportText = document.getElementById('reportText').innerText;
-                const today = new Date();
-                const fileName = `rewards-report-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.txt`;
-                
-                const element = document.createElement('a');
-                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(reportText));
-                element.setAttribute('download', fileName);
-                
-                element.style.display = 'none';
-                document.body.appendChild(element);
-                
-                element.click();
-                
-                document.body.removeChild(element);
-            });
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', function() {
+                    const reportText = document.getElementById('reportText').innerText;
+                    const today = new Date();
+                    const fileName = `rewards-report-${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.txt`;
+                    
+                    const element = document.createElement('a');
+                    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(reportText));
+                    element.setAttribute('download', fileName);
+                    
+                    element.style.display = 'none';
+                    document.body.appendChild(element);
+                    
+                    element.click();
+                    
+                    document.body.removeChild(element);
+                });
+            }
         });
     </script>
 </body>

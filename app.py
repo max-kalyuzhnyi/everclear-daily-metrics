@@ -1,38 +1,45 @@
-from flask import Flask, render_template, request, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import pandas as pd
 import io
 import datetime
 import os
+import json
+import uuid
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+
+# Store reports in memory (will be cleared on function restart)
+REPORTS = {}
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
-            return render_template('index.html')
+            return render_template('index.html', error="No file part")
         
         file = request.files['file']
         if file.filename == '':
-            flash('No selected file')
-            return render_template('index.html')
+            return render_template('index.html', error="No selected file")
         
         if file and file.filename.endswith('.csv'):
-            # Read the CSV file
-            content = file.read().decode('utf-8')
-            df = pd.read_csv(io.StringIO(content))
-            
-            # Process the data
-            report = generate_report(df)
-            
-            # Store report in session
-            session['report'] = report
-            
-            return render_template('index.html', report=report)
+            try:
+                # Read the CSV file
+                content = file.read().decode('utf-8')
+                df = pd.read_csv(io.StringIO(content))
+                
+                # Process the data
+                report = generate_report(df)
+                
+                # Store report with a unique ID
+                report_id = str(uuid.uuid4())
+                REPORTS[report_id] = report
+                
+                return render_template('index.html', report=report, report_id=report_id)
+            except Exception as e:
+                return render_template('index.html', error=f"Error processing file: {str(e)}")
         else:
-            flash('Please upload a CSV file')
+            return render_template('index.html', error="Please upload a CSV file")
     
     return render_template('index.html')
 
@@ -188,17 +195,27 @@ def format_report_text(report):
     
     return text
 
-@app.route('/download-report')
-def download_report():
-    if 'report' in session:
-        report = session['report']
+@app.route('/download-report/<report_id>')
+def download_report(report_id):
+    if report_id in REPORTS:
+        report = REPORTS[report_id]
         report_text = format_report_text(report)
         return render_template('download.html', report_text=report_text)
     else:
-        flash('No report available to download')
-        return render_template('index.html')
+        return render_template('index.html', error="Report not found. Please generate a new report.")
+
+# Handle 404 errors
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('index.html', error="Page not found"), 404
+
+# Handle 500 errors
+@app.errorhandler(500)
+def server_error(e):
+    return render_template('index.html', error="Server error. Please try again."), 500
 
 # The app variable is used by Vercel
+app = app
 
 if __name__ == '__main__':
     # Only used for local development
